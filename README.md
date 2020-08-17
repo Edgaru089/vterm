@@ -35,7 +35,7 @@ vt.Write([]byte("\x07"))
 ```
 
 Most of the VTermState object and Parser callbacks tend to be internal and are not exposed by the Go API.
-(There are functions *to-be-added* about palettes and colors however)
+(There are functions about palettes and colors however)
 
 The VTermScreen and VTermState objects are not separated from the VTerm object; All related
 methods has *VTerm as the receiver.

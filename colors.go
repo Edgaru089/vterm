@@ -26,13 +26,9 @@ func (c *Color) Equal(cb *Color) bool {
 	return C.vterm_color_is_equal((*C.VTermColor)(c), (*C.VTermColor)(cb)) == 1
 }
 
-// ConvertRGB converts the Color instance to RGB format (if it is not) using
-// VTermState's internal palette, and then returns the RGB values.
-func (vt *VTerm) ConvertRGB(c *Color) (r, g, b uint8) {
-	C.vterm_state_convert_color_to_rgb(vt.state, (*C.VTermColor)(c))
-	var rc, gc, bc C.uint8_t
-	C.goGetColorRGB((*C.VTermColor)(c), &rc, &gc, &bc)
-	return uint8(rc), uint8(gc), uint8(bc)
+// ConvertRGB calls vt.ConvertRGB(c).
+func (c *Color) ConvertRGB(vt *VTerm) (r, g, b uint8) {
+	return vt.ConvertRGB(c)
 }
 
 // IsRGB tells whether the color is a RGB one.
