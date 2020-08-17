@@ -147,7 +147,8 @@ func (vt *VTerm) MouseMove(row, col int, mod Modifier) {
 }
 
 // MouseButton is used to update mouse button state (pressed/released).
-// Left mouse button=1; middle=2; right=3.
+// Left mouse button=1, middle=2, right=3; wheel up=4, wheel down=5.
+// For mouse wheel keys you only need to call pressed=true.
 func (vt *VTerm) MouseButton(button int, pressed bool, mod Modifier) {
 	C.vterm_mouse_button(vt.term, C.int(button), C.bool(pressed), C.VTermModifier(mod))
 }

@@ -6,7 +6,11 @@ package vterm
 //#include "go_callbacks.h"
 //typedef const VTermScreenCell ConstScreenCell; // For const VTermScreenCell* callbacks; see https://stackoverflow.com/questions/32938558/cgo-cant-find-way-to-use-callbacks-with-const-char-argument
 import "C"
-import "unsafe"
+import (
+	"bytes"
+	"io"
+	"unsafe"
+)
 
 // cbData holds callback user data
 type cbData struct {
@@ -35,6 +39,13 @@ func (vt *VTerm) OutputCallback(f OutputCallback, data interface{}) {
 	}
 }
 
+// OutputWriteTo is a shortcut for setting a callback that writes to a io.Writer.
+func (vt *VTerm) OutputWriteTo(w io.Writer) {
+	vt.OutputCallback(func(b []byte, data interface{}) {
+		io.Copy(data.(io.Writer), bytes.NewReader(b))
+	}, w)
+}
+
 //export goOutputCallback
 func goOutputCallback(s *C.char, len C.size_t, user unsafe.Pointer) {
 	data := C.GoBytes(unsafe.Pointer(s), C.int(len))
@@ -57,12 +68,54 @@ type ScreenCallback struct {
 	ScrollbackPopLine  func(cells []Cell, data interface{}) bool               // Terminal is resized and a line is to be poped from the top of the scrollback stack into the slice; returns false if the stack is empty
 }
 
+// ScreenCallbackObj is an interface object that wraps ScreenCallback in Go manner.
+type ScreenCallbackObj interface {
+	ScreenCbDamage(r Rect) bool
+	ScreenCbMoveRect(dest, src Rect) bool
+	ScreenCbMoveCursor(pos, oldpos Pos) bool
+	ScreenCbSetTermProp(prop Property, value Value) bool
+	ScreenCbBell() bool
+	ScreenCbResize(rows, cols int) bool
+	ScreenCbScrollbackPushLine(cells []Cell) bool
+	ScreenCbScrollbackPopLine(cells []Cell) bool
+}
+
 // ScreenCallback sets the screen callback of the vterm object.
 // TODO Some fields in the ScreenCallback object can be nil while others are not.
 func (vt *VTerm) ScreenCallback(f ScreenCallback, data interface{}) {
 	vt.screencb.ScreenCallback = f
 	vt.screencb.data = data
 	vt.callocData = append(vt.callocData, C.goScreenSetCallback(vt.screen, C.int(vt.id)))
+}
+
+// ScreenCallbackObj sets the screen callbacks with a interface object.
+func (vt *VTerm) ScreenCallbackObj(i ScreenCallbackObj) {
+	vt.ScreenCallback(ScreenCallback{
+		Damage: func(r Rect, data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbDamage(r)
+		},
+		MoveRect: func(dest, src Rect, data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbMoveRect(dest, src)
+		},
+		MoveCursor: func(pos, oldpos Pos, data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbMoveCursor(pos, oldpos)
+		},
+		SetTermProp: func(prop Property, value Value, data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbSetTermProp(prop, value)
+		},
+		Bell: func(data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbBell()
+		},
+		Resize: func(rows, cols int, data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbResize(rows, cols)
+		},
+		ScrollbackPushLine: func(cells []Cell, data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbScrollbackPushLine(cells)
+		},
+		ScrollbackPopLine: func(cells []Cell, data interface{}) bool {
+			return data.(ScreenCallbackObj).ScreenCbScrollbackPopLine(cells)
+		},
+	}, i)
 }
 
 //export goScreenDamage
