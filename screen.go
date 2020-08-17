@@ -12,9 +12,9 @@ func (vt *VTerm) EnableAltscreen(enable bool) {
 	}
 }
 
-// Text retreives the text on the terminal in the given area.
-func (vt *VTerm) Text(rect Rect) string {
-	// TODO Screen.Text()
+// TextAt retreives the text on the terminal in the given area.
+func (vt *VTerm) TextAt(rect Rect) string {
+	// TODO Screen.TextAt()
 	return ""
 }
 
